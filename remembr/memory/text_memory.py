@@ -7,8 +7,8 @@ from langchain_core.documents import Document
 import numpy as np
 
 
-from remembr.memory.memory import Memory, MemoryItem
-from remembr.captioners.captioner import Captioner
+from memory.memory import Memory, MemoryItem
+from captioners.captioner import Captioner
 
 from langchain_community.vectorstores import Milvus
 

@@ -8,8 +8,8 @@ import numpy as np
 from PIL import Image
 
 
-from remembr.memory.memory import Memory, MemoryItem
-from remembr.captioners.captioner import Captioner
+from memory.memory import Memory, MemoryItem
+from captioners.captioner import Captioner
 
 from langchain_community.vectorstores import Milvus
 
