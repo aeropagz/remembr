@@ -7,11 +7,11 @@ from langchain_community.chat_models import ChatOllama
 from langchain_core.prompts import PromptTemplate
 
 sys.path.append(sys.path[0] + '/..')
-from remembr.tools.tools import format_docs
-from remembr.utils.util import file_to_string
+from tools.tools import format_docs
+from utils.util import file_to_string
 
-from remembr.agents.agent import Agent, AgentOutput
-from remembr.memory.memory import Memory
+from agents.agent import Agent, AgentOutput
+from memory.memory import Memory
 
 
 def parse_json(string):

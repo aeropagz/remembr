@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Tuple
 from langchain_core.documents import Document
 import numpy as np
 
-from remembr.memory.memory import Memory, MemoryItem
+from memory.memory import Memory, MemoryItem
 
 from langchain_community.vectorstores import Milvus
 from langchain_huggingface import HuggingFaceEmbeddings

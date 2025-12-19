@@ -117,7 +117,9 @@ for i, seq_id in enumerate(seq_ids):
         unfilled_qa = json.load(f)['data']
 
     try:
-        with open(CAPTIONS_PATH.format(seq_id = seq_id)) as f:
+        path = CAPTIONS_PATH.format(seq_id = seq_id)
+        print(path)
+        with open(path) as f:
             captions = json.load(f)
     except:
         print(f"ERROR. Questions for {seq_id} exists, however, captions do not exist. Will skip SeqID {seq_id}")

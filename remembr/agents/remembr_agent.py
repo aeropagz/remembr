@@ -20,8 +20,8 @@ from langgraph.graph.message import add_messages
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.utils.function_calling import convert_to_openai_function
 
-from langchain.tools import StructuredTool
-from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.tools import StructuredTool
+from pydantic import BaseModel, Field
 
 
 import os
@@ -29,13 +29,13 @@ import os
 sys.path.append(sys.path[0] + "/..")
 
 
-from remembr.utils.util import file_to_string
-from remembr.tools.tools import *
-from remembr.tools.functions_wrapper import FunctionsWrapper
+from utils.util import file_to_string
+from tools.tools import *
+from tools.functions_wrapper import FunctionsWrapper
 
-from remembr.memory.memory import Memory
+from memory.memory import Memory
 
-from remembr.agents.agent import Agent, AgentOutput
+from agents.agent import Agent, AgentOutput
 
 
 ### Print out state of the system
