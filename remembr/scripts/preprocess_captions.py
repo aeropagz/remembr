@@ -31,7 +31,9 @@ def run_video_in_segs(args):
     SEQUENCE_ID=args.seq_id
 
     # load folders
-    pkl_files = glob.glob(os.path.join(args.data_path, str(SEQUENCE_ID), '*.pkl'))
+    pkl_path = os.path.join(args.data_path, str(SEQUENCE_ID), '*.pkl')
+    pkl_files = glob.glob(pkl_path)
+    assert len(pkl_files), f"not date found in path {pkl_path}"
     pkl_files.sort(key=lambda x: float(x.split('/')[-1][:-4]))
 
     times = [float(x.split('/')[-1][:-4]) for x in pkl_files]
