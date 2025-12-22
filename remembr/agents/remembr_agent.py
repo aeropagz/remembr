@@ -215,7 +215,7 @@ class ReMEmbRAgent(Agent):
         self.time_retriever_tool = StructuredTool.from_function(
             func=lambda x: memory.search_by_time(x),
             name="retrieve_from_time",
-            description="Search and return information from your video memory by using an H:M:S time.",
+            description="Search and return information from your video memory by using time in a format of H:M:S, like 08:32:12",
             args_schema=TimeRetrieverInput,
             # coroutine= ... <- you can specify an async method if desired as well
         )
