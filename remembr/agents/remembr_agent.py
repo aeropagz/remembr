@@ -5,20 +5,16 @@ import re
 
 # from langchain_openai import OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
-
-from langchain_community.chat_models import ChatOllama
-from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from langchain_core.prompts import (
     PromptTemplate,
     ChatPromptTemplate,
     MessagesPlaceholder,
 )
-from langchain_core.messages import ToolMessage, AIMessage
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_core.utils.function_calling import convert_to_openai_function
 
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
@@ -30,9 +26,6 @@ sys.path.append(sys.path[0] + "/..")
 
 
 from utils.util import file_to_string
-from tools.tools import *
-from tools.functions_wrapper import FunctionsWrapper
-
 from memory.memory import Memory
 
 from agents.agent import Agent, AgentOutput
@@ -99,16 +92,13 @@ def try_except_continue(state, func):
 
 
 class ReMEmbRAgent(Agent):
-    def __init__(self, llm_type="gpt-4o", num_ctx=8192, temperature=0):
+    def __init__(self, temperature=0):
         # Wrapper that handles everything
-        llm = self.llm_selector(llm_type, temperature, num_ctx)
-        chat = FunctionsWrapper(llm)
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=temperature)
 
-        self.num_ctx = num_ctx
         self.temperature = temperature
 
-        self.chat = chat
-        self.llm_type = llm_type
+        self.chat = llm
         ### Load vectorstore
         self.embeddings = HuggingFaceEmbeddings(
             model_name="mixedbread-ai/mxbai-embed-large-v1"
@@ -133,31 +123,6 @@ class ReMEmbRAgent(Agent):
 
         self.chat_history = ChatMessageHistory()
 
-    def llm_selector(self, llm_type, temperature, num_ctx):
-        llm = None
-        # Support for LLM Gateway
-        if "gpt-4" in llm_type:
-            # TODO: ADD OpenAI here
-            pass
-
-        # Support for NIMs
-        elif "nim/" in llm_type:
-            llm_name = llm_type[4:]
-            llm = ChatNVIDIA(model=llm_name)
-
-        # Support for Ollama functions
-        elif llm_type == "command-r":
-            llm = ChatOllama(model=llm_type, temperature=temperature, num_ctx=num_ctx)
-        else:
-            llm = ChatOllama(
-                model=llm_type, format="json", temperature=temperature, num_ctx=num_ctx
-            )
-
-        if llm is None:
-            raise Exception("No correct LLM provided")
-
-        return llm
-
     def set_memory(self, memory: Memory):
         self.memory = memory
         self.create_tools(memory)
@@ -181,7 +146,7 @@ class ReMEmbRAgent(Agent):
             name="retrieve_from_text",
             description="Search and return information from your video memory in the form of captions",
             args_schema=TextRetrieverInput,
-            # coroutine= ... <- you can specify an async method if desired as well
+            # coroutine= ... <- you can specify an async method if desired
         )
 
         class PositionRetrieverInput(BaseModel):
@@ -199,7 +164,7 @@ class ReMEmbRAgent(Agent):
             name="retrieve_from_position",
             description="Search and return information from your video memory by using a position array such as (x,y,z)",
             args_schema=PositionRetrieverInput,
-            # coroutine= ... <- you can specify an async method if desired as well
+            # coroutine= ... <- you can specify an async method if desired
         )
 
         class TimeRetrieverInput(BaseModel):
@@ -217,7 +182,7 @@ class ReMEmbRAgent(Agent):
             name="retrieve_from_time",
             description="Search and return information from your video memory by using time in a format of H:M:S, like 08:32:12",
             args_schema=TimeRetrieverInput,
-            # coroutine= ... <- you can specify an async method if desired as well
+            # coroutine= ... <- you can specify an async method if desired
         )
 
         self.tool_list = [
@@ -225,7 +190,6 @@ class ReMEmbRAgent(Agent):
             self.position_retriever_tool,
             self.time_retriever_tool,
         ]
-        self.tool_definitions = [convert_to_openai_function(t) for t in self.tool_list]
 
     ### Nodes
 
@@ -246,7 +210,7 @@ class ReMEmbRAgent(Agent):
 
         # limit to 5 tool calls.
         if self.agent_call_count < 3:
-            model = model.bind_tools(tools=self.tool_definitions)
+            model = model.bind_tools(tools=self.tool_list)
             prompt = self.agent_prompt
         else:
             prompt = self.agent_gen_only_prompt
@@ -264,14 +228,6 @@ class ReMEmbRAgent(Agent):
         model = agent_prompt | model
 
         question = f"The question is: {messages[0]}"
-
-        # Convert all ToolMessages into AI Messages since Ollama cann't handle ToolMessage
-        if ("gpt-4" not in self.llm_type) and ("nim" not in self.llm_type):
-            for i in range(len(messages)):
-                if type(messages[i]) == ToolMessage:
-                    messages[i] = AIMessage(
-                        id=messages[i].id, content=messages[i].content
-                    )  # ignore tool_call_id
 
         response = model.invoke({"question": question, "chat_history": messages[:]})
 
@@ -432,8 +388,7 @@ if __name__ == "__main__":
     # Options: 'nim/meta/llama-3.1-405b-instruct', 'gpt-4o', or any Ollama LLMs (such as 'codestral')
     memory = MilvusMemory("test", db_ip="127.0.0.1")
 
-    llm_name = "gpt-4o"
-    agent = ReMEmbRAgent(llm_type=llm_name)
+    agent = ReMEmbRAgent()
 
     agent.set_memory(memory)
 
