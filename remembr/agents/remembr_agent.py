@@ -80,26 +80,27 @@ class ReMEmbRAgent(Agent):
             return memory.search_by_text(x)
 
         @tool
-        def retrieve_from_position(x: tuple[float, float, float]):
-            """Search and return information from your video memory by using a position array such as (x,y,z)
-
+        def retrieve_from_position(x: float, y: float, z: float):
+            """The query that will be searched by finding the nearest memories at this x,y,z position. Based on the question and your context, decide what position to search for in the database. This query argument should be a position such as x=0.5 y=0.2 z=0.1. The query will then search your memories for you.
             Args:
-                x: The query that will be searched by finding the nearest memories at this (x,y,z) position. The query must be an (x,y,z) array with floating point values Based on the question and your context, decide what position to search for in the database. This query argument should be a position such as (0.5, 0.2, 0.1). They should NOT be a string. The query will then search your memories for you.
+                x: x coordiante
+                y: y coordiante
+                z: z coordiante
             """
-            return memory.search_by_position(x)
+            return memory.search_by_position((x,y,z))
 
         @tool
-        def retrieve_from_time(x: str):
+        def retrieve_from_time(time: str):
             """Search and return information from your video memory by using time in a format of H:M:S, like 08:32:12
             Args:
                 x: The query that will be searched by finding the nearest memories at a specific time in H:M:S format. The query must be a string containing only time. Based on the question and your context, decide what time to search for in the database. This query argument should be an HMS time such as 08:02:03 with leading zeros. The query will then search your memories for you.
             """
-            return memory.search_by_position(x)
+            return memory.search_by_position(time)
 
         self.tool_list = [
             retrieve_from_text,
-            retrieve_from_position,
             retrieve_from_time,
+            retrieve_from_position,
         ]
 
     ### Nodes
