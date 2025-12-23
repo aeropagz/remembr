@@ -5,6 +5,7 @@ from langchain.agents import create_agent
 # from langchain_openai import OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.agents.middleware import ToolCallLimitMiddleware
 
 
 from langchain.tools import tool
@@ -71,6 +72,10 @@ class ReMEmbRAgent(Agent):
             tools=self.tool_list,
             system_prompt=self.agent_prompt,
             response_format=AgentAnswer,
+            middleware=[
+            # Global limit
+            ToolCallLimitMiddleware(run_limit=3),
+            ],
         )
 
     def create_tools(self, memory: Memory):
