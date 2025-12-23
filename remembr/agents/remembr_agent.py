@@ -33,13 +33,13 @@ class AgentAnswer(BaseModel):
         description="input the type of answer that is expected based only on the question: position, binary, time, or text. Be sure to then fill in that selected category"
     )
     text: str = Field(
-        description="a text answer here. This should be as if you are responding to a user, so do not provide low-level details."
+        description="Give a short reasoning for your answer."
     )
-    binary: bool = Field(description="a yes/no answer")
-    position: Position = Field(description="Position containing x,y,z coordinates.")
+    binary: bool = Field(description="a yes/no answer for binary questions")
+    position: Position = Field(description="An answer for spatial question with a position containing x,y,z coordinates.")
     orientation: float = Field(description="orientation in yaw")
-    duration: float = Field(description="Duration in minutes")
-    time: float = Field(description="Time in minutes ago")
+    duration: float = Field(description="An answer for temporal questions that a ask for a duration. Duration is in minutes")
+    time: float = Field(description="An answer for temporal questions that ask for certain timepoint in the past. Time is in minutes past since the current time given in context.")
 
 
 class ReMEmbRAgent(Agent):
