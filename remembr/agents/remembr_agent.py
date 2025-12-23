@@ -80,7 +80,7 @@ class ReMEmbRAgent(Agent):
             return memory.search_by_text(x)
 
         @tool
-        def retrieve_from_position(x: tuple):
+        def retrieve_from_position(x: tuple[float, float, float]):
             """Search and return information from your video memory by using a position array such as (x,y,z)
 
             Args:
