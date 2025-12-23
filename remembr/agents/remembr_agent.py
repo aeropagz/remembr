@@ -21,6 +21,11 @@ from memory.memory import Memory
 from pydantic import BaseModel, Field
 from agents.agent import Agent, AgentOutput
 
+class Position(BaseModel):
+    x: float = Field(description="x coordiante")
+    y: float = Field(description="y coordiante")
+    z: float = Field(description="z coordiante")
+
 
 class AgentAnswer(BaseModel):
     type: Literal["position", "binary", "time", "text"] = Field(
@@ -30,8 +35,8 @@ class AgentAnswer(BaseModel):
         description="a text answer here. This should be as if you are responding to a user, so do not provide low-level details."
     )
     binary: bool = Field(description="a yes/no answer")
-    position: tuple[float, float, float] = Field(
-        description="Position in [x,y,z] coordinates."
+    position: Position = Field(
+        description="Position containing x,y,z coordinates."
     )
     orientation: float = Field(description="orientation in yaw")
     duration: float = Field(description="Duration in minutes")
@@ -71,13 +76,13 @@ class ReMEmbRAgent(Agent):
 
     def create_tools(self, memory: Memory):
         @tool
-        def retrieve_from_text(x: str):
+        def retrieve_from_text(query: str):
             """Search and return information from your video memory in the form of captions
 
             Args:
                 x: The query that will be searched by the vector similarity-based retriever. Text embeddings of this description are used. There should always be text in here as a response! Based on the question and your context, decide what text to search for in the database. This query argument should be a phrase such as 'a crowd gathering' or 'a green car driving down the road'. The query will then search your memories for you.
             """
-            return memory.search_by_text(x)
+            return memory.search_by_text(query)
 
         @tool
         def retrieve_from_position(x: float, y: float, z: float):
@@ -106,9 +111,12 @@ class ReMEmbRAgent(Agent):
     ### Nodes
 
     def query(self, query: str):
-        res = self.agent.invoke({"messages": [{"role": "user", "content": query}]})
+        res:AgentAnswer = self.agent.invoke({"messages": [{"role": "user", "content": query}]})["structured_response"]
+        res_dict = res.dict()
+        print(res_dict)
 
-        response = AgentOutput.from_dict(res["structured_response"].model_dump())
+        response = AgentOutput.from_dict(**res_dict)
+        response.position = (res.position.x, res.position.y, res.position.z)
 
         return response
 

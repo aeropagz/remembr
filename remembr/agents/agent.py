@@ -6,7 +6,7 @@ class AgentOutput:
     type: str
     text: str
     binary: str
-    position: list
+    position: tuple[float, float, float]
     orientation: float
     duration: float
     time: float
