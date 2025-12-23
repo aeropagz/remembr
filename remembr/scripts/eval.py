@@ -224,8 +224,7 @@ def main(args):
     use_milvus = False
     use_optimal_context = False
     if 'remembr' in args.model:
-        base_llm = args.model.split('+')[-1]
-        agent = ReMEmbRAgent(llm_type=base_llm, num_ctx=args.num_ctx, temperature=args.temperature)
+        agent = ReMEmbRAgent(temperature=args.temperature)
         use_milvus = True
 
     elif 'optimal' in args.model:
@@ -264,9 +263,6 @@ def main(args):
 
         qa_instance = data[i]
         question = qa_instance['question']
-        context = qa_instance['context']
-        start_time = qa_instance['start_time']
-        answers = qa_instance['answers']
         id = qa_instance['id']
 
         if (qa_instance['type'] == 'text'):
