@@ -16,7 +16,7 @@ from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from langchain_community.chat_message_histories import ChatMessageHistory
 
-from langchain_core.tools import StructuredTool
+from langchain.tools import StructuredTool
 from pydantic import BaseModel, Field
 
 
@@ -94,7 +94,7 @@ def try_except_continue(state, func):
 class ReMEmbRAgent(Agent):
     def __init__(self, temperature=0):
         # Wrapper that handles everything
-        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=temperature)
+        llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=temperature)
 
         self.temperature = temperature
 
