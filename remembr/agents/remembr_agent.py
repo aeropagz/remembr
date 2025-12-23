@@ -16,8 +16,7 @@ from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from langchain_community.chat_message_histories import ChatMessageHistory
 
-from langchain.tools import StructuredTool
-from pydantic import BaseModel, Field
+from langchain.tools import tool
 
 
 import os
@@ -94,7 +93,9 @@ def try_except_continue(state, func):
 class ReMEmbRAgent(Agent):
     def __init__(self, temperature=0):
         # Wrapper that handles everything
-        llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=temperature)
+        llm = ChatGoogleGenerativeAI(
+            model="gemini-3-flash-preview", temperature=temperature
+        )
 
         self.temperature = temperature
 
@@ -132,63 +133,36 @@ class ReMEmbRAgent(Agent):
         template = "At time={{time}} seconds, the robot was at an average position of {{position}} with an average orientation of {{theta}} radians. "
         template += "The robot saw the following: {{page_content}}"
 
-        class TextRetrieverInput(BaseModel):
-            x: str = Field(
-                description="The query that will be searched by the vector similarity-based retriever.\
-                                Text embeddings of this description are used. There should always be text in here as a response! \
-                                Based on the question and your context, decide what text to search for in the database. \
-                                This query argument should be a phrase such as 'a crowd gathering' or 'a green car driving down the road'.\
-                                The query will then search your memories for you."
-            )
+        @tool
+        def retrieve_from_text(x: str):
+            """Search and return information from your video memory in the form of captions
 
-        self.retriever_tool = StructuredTool.from_function(
-            func=lambda x: memory.search_by_text(x),
-            name="retrieve_from_text",
-            description="Search and return information from your video memory in the form of captions",
-            args_schema=TextRetrieverInput,
-            # coroutine= ... <- you can specify an async method if desired
-        )
+            Args:
+                x: The query that will be searched by the vector similarity-based retriever. Text embeddings of this description are used. There should always be text in here as a response! Based on the question and your context, decide what text to search for in the database. This query argument should be a phrase such as 'a crowd gathering' or 'a green car driving down the road'. The query will then search your memories for you.
+            """
+            return memory.search_by_text(x)
 
-        class PositionRetrieverInput(BaseModel):
-            x: tuple = Field(
-                description="The query that will be searched by finding the nearest memories at this (x,y,z) position.\
-                                The query must be an (x,y,z) array with floating point values \
-                                Based on the question and your context, decide what position to search for in the database. \
-                                This query argument should be a position such as (0.5, 0.2, 0.1). They should NOT be a string. \
-                                The query will then search your memories for you."
-            )
+        @tool
+        def retrieve_from_position(x: tuple):
+            """Search and return information from your video memory by using a position array such as (x,y,z)
 
-        # position-based tool
-        self.position_retriever_tool = StructuredTool.from_function(
-            func=lambda x: memory.search_by_position(x),
-            name="retrieve_from_position",
-            description="Search and return information from your video memory by using a position array such as (x,y,z)",
-            args_schema=PositionRetrieverInput,
-            # coroutine= ... <- you can specify an async method if desired
-        )
+            Args:
+                x: The query that will be searched by finding the nearest memories at this (x,y,z) position. The query must be an (x,y,z) array with floating point values Based on the question and your context, decide what position to search for in the database. This query argument should be a position such as (0.5, 0.2, 0.1). They should NOT be a string. The query will then search your memories for you.
+            """
+            return memory.search_by_position(x)
 
-        class TimeRetrieverInput(BaseModel):
-            x: str = Field(
-                description="The query that will be searched by finding the nearest memories at a specific time in H:M:S format.\
-                                The query must be a string containing only time. \
-                                Based on the question and your context, decide what time to search for in the database. \
-                                This query argument should be an HMS time such as 08:02:03 with leading zeros. \
-                                The query will then search your memories for you."
-            )
-
-        # position-based tool
-        self.time_retriever_tool = StructuredTool.from_function(
-            func=lambda x: memory.search_by_time(x),
-            name="retrieve_from_time",
-            description="Search and return information from your video memory by using time in a format of H:M:S, like 08:32:12",
-            args_schema=TimeRetrieverInput,
-            # coroutine= ... <- you can specify an async method if desired
-        )
+        @tool
+        def retrieve_from_time(x: str):
+            """Search and return information from your video memory by using time in a format of H:M:S, like 08:32:12
+            Args:
+                x: The query that will be searched by finding the nearest memories at a specific time in H:M:S format. The query must be a string containing only time. Based on the question and your context, decide what time to search for in the database. This query argument should be an HMS time such as 08:02:03 with leading zeros. The query will then search your memories for you.
+            """
+            return memory.search_by_position(x)
 
         self.tool_list = [
-            self.retriever_tool,
-            self.position_retriever_tool,
-            self.time_retriever_tool,
+            retrieve_from_text,
+            retrieve_from_position,
+            retrieve_from_time,
         ]
 
     ### Nodes
