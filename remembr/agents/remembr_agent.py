@@ -59,7 +59,6 @@ class ReMEmbRAgent(Agent):
             top_level_path + "prompts/agent_system_prompt.txt"
         )
 
-
     def set_memory(self, memory: Memory):
         self.memory = memory
         self.create_tools(memory)
@@ -69,7 +68,7 @@ class ReMEmbRAgent(Agent):
             system_prompt=self.agent_prompt,
         )
 
-    def create_tools(self, memory):
+    def create_tools(self, memory: Memory):
         @tool
         def retrieve_from_text(x: str):
             """Search and return information from your video memory in the form of captions
@@ -87,7 +86,7 @@ class ReMEmbRAgent(Agent):
                 y: y coordiante
                 z: z coordiante
             """
-            return memory.search_by_position((x,y,z))
+            return memory.search_by_position((x, y, z))
 
         @tool
         def retrieve_from_time(time: str):
@@ -95,7 +94,7 @@ class ReMEmbRAgent(Agent):
             Args:
                 x: The query that will be searched by finding the nearest memories at a specific time in H:M:S format. The query must be a string containing only time. Based on the question and your context, decide what time to search for in the database. This query argument should be an HMS time such as 08:02:03 with leading zeros. The query will then search your memories for you.
             """
-            return memory.search_by_position(time)
+            return memory.search_by_time(time)
 
         self.tool_list = [
             retrieve_from_text,
@@ -108,8 +107,7 @@ class ReMEmbRAgent(Agent):
     def query(self, query: str):
         res = self.agent.invoke({"messages": [{"role": "user", "content": query}]})
 
-
-        response = AgentOutput.from_dict(res['structured_response'].model_dump())
+        response = AgentOutput.from_dict(res["structured_response"].model_dump())
 
         return response
 
