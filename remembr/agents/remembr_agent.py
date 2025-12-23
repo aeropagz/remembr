@@ -94,7 +94,7 @@ def try_except_continue(state, func):
 class ReMEmbRAgent(Agent):
     def __init__(self, temperature=0):
         # Wrapper that handles everything
-        llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=temperature)
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=temperature)
 
         self.temperature = temperature
 
