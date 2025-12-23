@@ -1,20 +1,11 @@
-from typing import Annotated, Sequence, TypedDict
-import traceback
+from typing import Literal
 import sys
-import re
+from langchain.agents import create_agent
 
 # from langchain_openai import OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from langchain_core.prompts import (
-    PromptTemplate,
-    ChatPromptTemplate,
-    MessagesPlaceholder,
-)
-from langchain_core.messages import BaseMessage
-from langgraph.graph.message import add_messages
-from langchain_community.chat_message_histories import ChatMessageHistory
 
 from langchain.tools import tool
 
@@ -27,67 +18,24 @@ sys.path.append(sys.path[0] + "/..")
 from utils.util import file_to_string
 from memory.memory import Memory
 
+from pydantic import BaseModel, Field
 from agents.agent import Agent, AgentOutput
 
 
-### Print out state of the system
-def inspect(state):
-    """Print the state passed between Runnables in a langchain and pass it on"""
-    for k, v in state.items():
-        if type(v) == str:
-            print(v)
-
-        elif type(v) == list:
-            for item in v:
-                if type(item) == str:
-                    print(item)
-                else:
-                    print(item)
-        else:
-            print(item)
-
-    # print(state)
-    return state
-
-
-def parse_json(string):
-    parsed = (
-        re.search(r"```json(.*?)```", string, re.DOTALL | re.IGNORECASE)
-        .group(1)
-        .strip()
+class AgentAnswer(BaseModel):
+    type: Literal["position", "binary", "time", "text"] = Field(
+        description="input the type of answer that is expected based only on the question: position, binary, time, or text. Be sure to then fill in that selected category"
     )
-    return eval(parsed)
-
-
-class AgentState(TypedDict):
-    # The add_messages function defines how an update should be processed
-    # Default is to replace. add_messages says "append"
-    messages: Annotated[Sequence[BaseMessage], add_messages]
-
-
-# Define the function that determines whether to continue or not
-def should_continue(state: AgentState):
-    messages = state["messages"]
-
-    last_message = messages[-1]
-    # If there is no function call, then we finish
-    if not last_message.tool_calls:
-        return "end"
-    else:
-        return "continue"
-
-
-def try_except_continue(state, func):
-    while True:
-        try:
-            ret = func(state)
-            return ret
-        except Exception as e:
-            print("I crashed trying to run:", func)
-            print("Here is my error")
-            print(e)
-            traceback.print_exception(*sys.exc_info())
-            continue
+    text: str = Field(
+        description="a text answer here. This should be as if you are responding to a user, so do not provide low-level details."
+    )
+    binary: bool = Field(description="a yes/no answer")
+    position: tuple[float, float, float] = Field(
+        description="Position in [x,y,z] coordinates."
+    )
+    orientation: float = Field(description="orientation in yaw")
+    duration: float = Field(description="Duration in minutes")
+    time: float = Field(description="Time in minutes ago")
 
 
 class ReMEmbRAgent(Agent):
@@ -110,29 +58,18 @@ class ReMEmbRAgent(Agent):
         self.agent_prompt = file_to_string(
             top_level_path + "prompts/agent_system_prompt.txt"
         )
-        self.generate_prompt = file_to_string(
-            top_level_path + "prompts/generate_system_prompt.txt"
-        )
-        self.agent_gen_only_prompt = file_to_string(
-            top_level_path + "prompts/agent_gen_system_prompt.txt"
-        )
 
-        self.previous_tool_requests = (
-            "These are the tools I have previously used so far: \n"
-        )
-        self.agent_call_count = 0
-
-        self.chat_history = ChatMessageHistory()
 
     def set_memory(self, memory: Memory):
         self.memory = memory
         self.create_tools(memory)
-        self.build_graph()
+        self.agent = create_agent(
+            model=self.chat,
+            tools=self.tool_list,
+            system_prompt=self.agent_prompt,
+        )
 
     def create_tools(self, memory):
-        template = "At time={{time}} seconds, the robot was at an average position of {{position}} with an average orientation of {{theta}} radians. "
-        template += "The robot saw the following: {{page_content}}"
-
         @tool
         def retrieve_from_text(x: str):
             """Search and return information from your video memory in the form of captions
@@ -167,190 +104,11 @@ class ReMEmbRAgent(Agent):
 
     ### Nodes
 
-    def agent(self, state):
-        """
-        Invokes the agent model to generate a response based on the current state. Given
-        the question, it will decide to retrieve using the retriever tool, or simply end.
+    def query(self, query: str):
+        res = self.agent.invoke({"messages": [{"role": "user", "content": query}]})
 
-        Args:
-            state (messages): The current state
 
-        Returns:
-            dict: The updated state with the agent response appended to messages
-        """
-        messages = state["messages"]
-
-        model = self.chat
-
-        # limit to 5 tool calls.
-        if self.agent_call_count < 3:
-            model = model.bind_tools(tools=self.tool_list)
-            prompt = self.agent_prompt
-        else:
-            prompt = self.agent_gen_only_prompt
-
-        agent_prompt = ChatPromptTemplate.from_messages(
-            [
-                # ("system", prompt),
-                MessagesPlaceholder("chat_history"),
-                (("human"), self.previous_tool_requests),
-                ("ai", prompt),
-                ("human", "{question}"),
-            ]
-        )
-
-        model = agent_prompt | model
-
-        question = f"The question is: {messages[0]}"
-
-        response = model.invoke({"question": question, "chat_history": messages[:]})
-
-        if response.tool_calls:
-            for tool_call in response.tool_calls:
-                if tool_call["name"] != "__conversational_response":
-                    args = re.sub(
-                        "\{.*?\}", "", str(tool_call["args"])
-                    )  # remove curly braces
-                    self.previous_tool_requests += f"I previously used the {tool_call['name']} tool with the arguments: {args}.\n"
-
-        self.agent_call_count += 1
-
-        return {"messages": [response]}
-
-    def generate(self, state):
-        """
-        Generate answer
-
-        Args:
-            state (messages): The current state
-
-        Returns:
-            dict: The updated state with re-phrased question
-        """
-        messages = state["messages"]
-        question = messages[0].content + "\n Please responsed in the desired format."
-        last_message = messages[-1]
-
-        docs = last_message.content
-
-        prompt = PromptTemplate(
-            template=self.generate_prompt,
-            input_variables=["context", "question"],
-        )
-        filled_prompt = prompt.invoke({"question": question})
-
-        gen_prompt = ChatPromptTemplate.from_messages(
-            [
-                # ("human", "What do you do?"),
-                ("system", filled_prompt.text),
-                MessagesPlaceholder("chat_history"),
-                # ("ai", filled_prompt.text),
-                ("human", "{question}"),
-            ]
-        )
-
-        model = gen_prompt | self.chat
-
-        response = model.invoke({"question": question, "chat_history": messages[1:]})
-
-        # let us parse and check the output is a dictionary. raise error otherwise
-        response = "".join(response.content.splitlines())
-
-        try:
-            if "```json" not in response:
-                # try parsing on its own since we cannot always trust llms
-                parsed = eval(response)
-            else:
-                parsed = parse_json(response)
-
-            # then check it has all the required keys
-            keys_to_check_for = ["time", "text", "binary", "position", "duration"]
-
-            for key in keys_to_check_for:
-                if key not in parsed:
-                    raise ValueError(
-                        "Missing all the required keys during generate. Retrying..."
-                    )
-
-            if type(parsed["position"]) == str:
-                parsed["position"] = eval(parsed["position"])
-
-            if (parsed["position"] is not None) and len(parsed["position"]) != 3:
-                raise ValueError(
-                    f"Shape of position was incorrect. {parsed['position']}. Retrying..."
-                )
-
-        except:
-            raise ValueError("Generate call failed. Retrying...")
-
-        self.previous_tool_requests = (
-            "These are the tools I have previously used so far: \n"
-        )
-        self.agent_call_count = 0
-        return {"messages": [str(parsed)]}
-
-    def build_graph(self):
-        from langgraph.graph import END, StateGraph
-        from langgraph.prebuilt import ToolNode
-
-        # Define a new graph
-        workflow = StateGraph(AgentState)
-
-        # Define the nodes we will cycle between
-        workflow.add_node(
-            "agent", lambda state: try_except_continue(state, self.agent)
-        )  # agent
-        # retrieve = ToolNode([self.retriever_tool])
-        tool_node = ToolNode(self.tool_list)
-        workflow.add_node("action", tool_node)
-        # workflow.add_node("action", lambda state: try_except_continue(state, tool_node))
-
-        # workflow.add_node("action", self.call_tool)
-
-        workflow.add_node(
-            "generate", lambda state: try_except_continue(state, self.generate)
-        )  # Generating a response after we know the documents are relevant
-        # Call agent node to decide to retrieve or not
-
-        workflow.set_entry_point("agent")
-
-        # Decide whether to retrieve
-        workflow.add_conditional_edges(
-            "agent",
-            # Assess agent decision
-            should_continue,
-            {
-                # Translate the condition outputs to nodes in our graph
-                "continue": "action",
-                "end": "generate",
-            },
-        )
-
-        workflow.add_edge("action", "agent")
-
-        workflow.add_edge("generate", END)
-
-        # Compile
-        self.graph = workflow.compile()
-
-    def query(self, question: str):
-        inputs = {
-            "messages": [
-                (("user", question)),
-            ]
-        }
-
-        out = self.graph.invoke(inputs)
-        response = out["messages"][-1]
-        response = "".join(response.content.splitlines())
-
-        if "```json" not in response:
-            # try parsing on its own since we cannot always trust llms
-            parsed = eval(response)
-        else:
-            parsed = parse_json(response)
-
-        response = AgentOutput.from_dict(parsed)
+        response = AgentOutput.from_dict(res['structured_response'].model_dump())
 
         return response
 
