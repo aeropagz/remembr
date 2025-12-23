@@ -21,6 +21,7 @@ from memory.memory import Memory
 from pydantic import BaseModel, Field
 from agents.agent import Agent, AgentOutput
 
+
 class Position(BaseModel):
     x: float = Field(description="x coordiante")
     y: float = Field(description="y coordiante")
@@ -35,9 +36,7 @@ class AgentAnswer(BaseModel):
         description="a text answer here. This should be as if you are responding to a user, so do not provide low-level details."
     )
     binary: bool = Field(description="a yes/no answer")
-    position: Position = Field(
-        description="Position containing x,y,z coordinates."
-    )
+    position: Position = Field(description="Position containing x,y,z coordinates.")
     orientation: float = Field(description="orientation in yaw")
     duration: float = Field(description="Duration in minutes")
     time: float = Field(description="Time in minutes ago")
@@ -71,7 +70,7 @@ class ReMEmbRAgent(Agent):
             model=self.chat,
             tools=self.tool_list,
             system_prompt=self.agent_prompt,
-            response_format=AgentAnswer
+            response_format=AgentAnswer,
         )
 
     def create_tools(self, memory: Memory):
@@ -111,12 +110,19 @@ class ReMEmbRAgent(Agent):
     ### Nodes
 
     def query(self, query: str):
-        res:AgentAnswer = self.agent.invoke({"messages": [{"role": "user", "content": query}]})["structured_response"]
-        res_dict = res.dict()
-        print(res_dict)
+        res: AgentAnswer = self.agent.invoke(
+            {"messages": [{"role": "user", "content": query}]}
+        )["structured_response"]
 
-        response = AgentOutput.from_dict(**res_dict)
-        response.position = (res.position.x, res.position.y, res.position.z)
+        response = AgentOutput(
+            type=res.type,
+            text=res.type,
+            binary='yes' if res.binary else 'no',
+            position=(res.position.x, res.position.y, res.position.x),
+            orientation=res.orientation,
+            duration=res.duration,
+            time=res.time,
+        )
 
         return response
 
