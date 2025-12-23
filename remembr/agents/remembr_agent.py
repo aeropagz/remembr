@@ -66,6 +66,7 @@ class ReMEmbRAgent(Agent):
             model=self.chat,
             tools=self.tool_list,
             system_prompt=self.agent_prompt,
+            response_format=AgentAnswer
         )
 
     def create_tools(self, memory: Memory):
