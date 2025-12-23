@@ -86,7 +86,7 @@ class ReMEmbRAgent(Agent):
             Args:
                 x: The query that will be searched by the vector similarity-based retriever. Text embeddings of this description are used. There should always be text in here as a response! Based on the question and your context, decide what text to search for in the database. This query argument should be a phrase such as 'a crowd gathering' or 'a green car driving down the road'. The query will then search your memories for you.
             """
-            print("calling tool text")
+            print(f"calling tool text with {query}")
             return memory.search_by_text(query)
 
         @tool
@@ -97,7 +97,7 @@ class ReMEmbRAgent(Agent):
                 y: y coordiante
                 z: z coordiante
             """
-            print("calling tool position")
+            print(f"calling tool position {(x,y,z)}")
             return memory.search_by_position((x, y, z))
 
         @tool
@@ -106,7 +106,7 @@ class ReMEmbRAgent(Agent):
             Args:
                 x: The query that will be searched by finding the nearest memories at a specific time in H:M:S format. The query must be a string containing only time. Based on the question and your context, decide what time to search for in the database. This query argument should be an HMS time such as 08:02:03 with leading zeros. The query will then search your memories for you.
             """
-            print("calling tool time")
+            print(f"calling tool time {time}")
             return memory.search_by_time(time)
 
         self.tool_list = [
@@ -120,8 +120,8 @@ class ReMEmbRAgent(Agent):
     def query(self, query: str):
         print(query)
         out = self.agent.invoke({"messages": [{"role": "user", "content": query}]})
-        print(out)
         res: AgentAnswer = out["structured_response"]
+        print(res)
 
         response = AgentOutput(
             type=res.type,
