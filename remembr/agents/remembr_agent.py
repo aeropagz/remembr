@@ -1,4 +1,5 @@
 from typing import Annotated, Literal, Sequence, TypedDict
+import time
 import traceback
 import sys, re
 
@@ -18,6 +19,8 @@ from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.utils.function_calling import convert_to_openai_function
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 
 from langchain.tools import StructuredTool
 from langchain_core.pydantic_v1 import BaseModel, Field
@@ -89,6 +92,7 @@ def try_except_continue(state, func):
             print("Here is my error")
             print(e)
             traceback.print_exception(*sys.exc_info())
+            time.sleep(10)
             continue
 
 class ReMEmbRAgent(Agent):
@@ -125,6 +129,8 @@ class ReMEmbRAgent(Agent):
         if 'gpt-4' in llm_type:
             # TODO: ADD OpenAI here
             pass
+        elif 'gemini' in llm_type:
+            llm =  ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=temperature)
 
         # Support for NIMs
         elif 'nim/' in llm_type:
@@ -139,6 +145,7 @@ class ReMEmbRAgent(Agent):
 
         if llm is None:
             raise Exception("No correct LLM provided")
+
 
         return llm
 
@@ -305,6 +312,9 @@ class ReMEmbRAgent(Agent):
         )
 
         model = gen_prompt | self.chat
+        for m in messages:
+            print()
+            print(m)
 
         response = model.invoke({"question": question, "chat_history": messages[1:]})
 

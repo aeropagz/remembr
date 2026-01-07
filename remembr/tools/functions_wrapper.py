@@ -24,7 +24,7 @@ from langchain_core.output_parsers.base import OutputParserLike
 from langchain_core.output_parsers.json import JsonOutputParser
 from langchain_core.output_parsers.pydantic import PydanticOutputParser
 from langchain_core.outputs import ChatGeneration, ChatResult
-from langchain_core.prompts import SystemMessagePromptTemplate
+from langchain_core.prompts import HumanMessagePromptTemplate
 from langchain_core.pydantic_v1 import BaseModel
 from langchain_core.runnables import Runnable, RunnableLambda
 from langchain_core.runnables.base import RunnableMap
@@ -317,7 +317,7 @@ class FunctionsWrapper(BaseChatModel, BaseLanguageModel):
         if len(functions) > 0 and _is_pydantic_class(functions[0]):
             functions = [convert_to_ollama_tool(fn) for fn in functions]
         functions.insert(0, DEFAULT_RESPONSE_FUNCTION)
-        system_message_prompt_template = SystemMessagePromptTemplate.from_template(
+        system_message_prompt_template = HumanMessagePromptTemplate.from_template(
             self.tool_system_prompt_template
         )
         system_message = system_message_prompt_template.format(
