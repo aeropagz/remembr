@@ -1,6 +1,7 @@
 from typing import Annotated, Sequence, TypedDict
 import traceback
 import sys
+import json
 import re
 
 # from langchain_openai import OpenAIEmbeddings
@@ -57,7 +58,8 @@ def parse_json(string):
         .group(1)
         .strip()
     )
-    return eval(parsed)
+    
+    return json.loads(parsed)["tool_input"]["response"]
 
 
 class AgentState(TypedDict):
@@ -94,7 +96,7 @@ def try_except_continue(state, func):
 class ReMEmbRAgent(Agent):
     def __init__(self, temperature=0):
         # Wrapper that handles everything
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest", temperature=temperature)
+        llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=temperature)
 
         self.temperature = temperature
 
@@ -150,17 +152,20 @@ class ReMEmbRAgent(Agent):
         )
 
         class PositionRetrieverInput(BaseModel):
-            x: tuple = Field(
-                description="The query that will be searched by finding the nearest memories at this (x,y,z) position.\
-                                The query must be an (x,y,z) array with floating point values \
-                                Based on the question and your context, decide what position to search for in the database. \
-                                This query argument should be a position such as (0.5, 0.2, 0.1). They should NOT be a string. \
-                                The query will then search your memories for you."
-            )
+            """
+            The query that will be searched by finding the nearest memories at this (x,y,z) position.
+            The query must be an (x,y,z) position with floating point values 
+            Based on the question and your context, decide what position to search for in the database.
+            This query argument should be a position such as (0.5, 0.2, 0.1). They should NOT be a string.
+            The query will then search your memories for you.            
+            """
+            x: float = Field(description="The x coordinate")
+            y: float = Field(description="The y coordinate")
+            z: float = Field(description="The z coordinate")
 
         # position-based tool
         self.position_retriever_tool = StructuredTool.from_function(
-            func=lambda x: memory.search_by_position(x),
+            func=lambda x,y,z: memory.search_by_position((x, y, z)),
             name="retrieve_from_position",
             description="Search and return information from your video memory by using a position array such as (x,y,z)",
             args_schema=PositionRetrieverInput,
@@ -295,7 +300,7 @@ class ReMEmbRAgent(Agent):
             for key in keys_to_check_for:
                 if key not in parsed:
                     raise ValueError(
-                        "Missing all the required keys during generate. Retrying..."
+                        f"Missing all the required keys during generate '{key}' in {parsed}. Retrying..."
                     )
 
             if type(parsed["position"]) == str:
