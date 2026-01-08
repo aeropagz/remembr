@@ -1,18 +1,13 @@
 import json
 import numpy as np
 
-from langchain_community.chat_models import ChatOllama
 
-from langchain_core.prompts import PromptTemplate
-from time import strftime, localtime
-import numpy as np
 import tqdm
 
 import re
 import time
-import uuid
 import sys
-import os, sys
+import os
 import pickle as pkl
 from PIL import Image as PILImage
 import glob
@@ -33,7 +28,6 @@ from memory.milvus_memory import MilvusMemory
 from memory.text_memory import TextMemory
 from memory.video_memory import VideoMemory, ImageMemoryItem
 
-from tools.tools import format_docs
 
 
 def parse_json(string):
@@ -231,7 +225,7 @@ def main(args):
     use_optimal_context = False
     if 'remembr' in args.model:
         base_llm = args.model.split('+')[-1]
-        agent = ReMEmbRAgent(llm_type=base_llm, num_ctx=args.num_ctx, temperature=args.temperature)
+        agent = ReMEmbRAgent(temperature=args.temperature)
         use_milvus = True
 
     elif 'optimal' in args.model:

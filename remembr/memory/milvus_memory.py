@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Tuple
 from langchain_core.documents import Document
 import numpy as np
 
-from remembr.memory.memory import Memory, MemoryItem
+from memory.memory import Memory, MemoryItem
 
 from langchain_community.vectorstores import Milvus
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -192,12 +192,12 @@ class MilvusMemory(Memory):
         # if the hms_time is already in the mdy hms format without me doing anything, let's just use that.
         # bad llms don't listen :(
         try:
-            res = bool(datetime.datetime.strptime(hms_time, template))
+            is_mdy_hms = bool(datetime.datetime.strptime(hms_time, template))
         except ValueError:
-            res = False
+            is_mdy_hms = False
 
         hms_time = hms_time.strip()
-        if not res: # convert to the right format then
+        if not is_mdy_hms: # convert to the right format then
             hms_time = mdy_date + ' ' + hms_time
 
         query = time.mktime(datetime.datetime.strptime(hms_time,template).timetuple()) - self.time_offset

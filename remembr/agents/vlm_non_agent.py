@@ -14,9 +14,9 @@ sys.path.append(sys.path[0] + '/..')
 from tools.tools import format_docs
 from utils.util import file_to_string
 
-from remembr.agents.agent import Agent, AgentOutput
-from remembr.memory.memory import Memory
-from remembr.memory.video_memory import VideoMemory, ImageMemoryItem
+from agents.agent import Agent, AgentOutput
+from memory.memory import Memory
+from memory.video_memory import VideoMemory, ImageMemoryItem
 
 
 def parse_json(string):
