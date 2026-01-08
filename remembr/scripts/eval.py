@@ -1,7 +1,6 @@
 import json
 import numpy as np
 
-from langchain_community.chat_models import ChatOllama
 
 from langchain_core.prompts import PromptTemplate
 from time import strftime, localtime
@@ -25,8 +24,6 @@ import traceback
 sys.path.append(sys.path[0] + '/..')
 
 from agents.remembr_agent import ReMEmbRAgent
-from agents.non_agent import NonAgent
-from agents.vlm_non_agent import VLMNonAgent
 
 from memory.memory import MemoryItem
 from memory.milvus_memory import MilvusMemory
@@ -36,9 +33,6 @@ from memory.video_memory import VideoMemory, ImageMemoryItem
 from tools.tools import format_docs
 
 
-def parse_json(string):
-    parsed = re.search(r"```json(.*?)```", string, re.DOTALL| re.IGNORECASE).group(1).strip()
-    return eval(parsed)
 
 # we can have binary, position-based, time-based, or description-based. let's answer accordingly
 def evaluate_output(qa_instance, predicted):
@@ -229,21 +223,10 @@ def main(args):
 
     use_milvus = False
     use_optimal_context = False
-    if 'remembr' in args.model:
-        base_llm = args.model.split('+')[-1]
-        print(base_llm)
-        agent = ReMEmbRAgent(llm_type=base_llm, num_ctx=args.num_ctx, temperature=args.temperature)
-        use_milvus = True
-
-    elif 'optimal' in args.model:
-        base_llm = args.model.split('+')[-1]
-        agent = NonAgent(llm_type=base_llm, num_ctx=args.num_ctx, temperature=args.temperature)
-        use_optimal_context = True
-    elif 'vlm' in args.model:
-        agent = VLMNonAgent(llm_type='gpt-4o')
-
-    else:
-        agent = NonAgent(llm_type=args.model, num_ctx=args.num_ctx*4, temperature=args.temperature)
+    base_llm = args.model.split('+')[-1]
+    print(base_llm)
+    agent = ReMEmbRAgent(llm_type=base_llm,  temperature=args.temperature)
+    use_milvus = True
 
 
     data_path = os.path.join(args.data_dir, 'questions', str(args.sequence_id), args.qa_file+'.json')
