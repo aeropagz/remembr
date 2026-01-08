@@ -4,6 +4,7 @@ import sys, os
 import re
 
 from langchain_community.chat_models import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 
 sys.path.append(sys.path[0] + '/..')
@@ -24,9 +25,8 @@ class NonAgent(Agent):
         
         self.llm_type = llm_type
 
-        if llm_type == 'gpt-4o':
-            # TODO: ADD OpenAI key here!
-            pass
+        if 'gpt' in llm_type:
+            self.chain = ChatOpenAI(model=llm_type, temperature=temperature)
         else:
             self.chain = ChatOllama(model=llm_type, num_ctx=num_ctx, temperature=temperature)
         self.prompt = file_to_string(str(os.path.dirname(__file__)) + '/../' + 'prompts/non_agent_system_prompt.txt')

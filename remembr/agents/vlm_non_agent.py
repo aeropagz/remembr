@@ -7,6 +7,7 @@ from PIL import Image
 from time import strftime, localtime
 
 from langchain_community.chat_models import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage 
 
@@ -74,11 +75,10 @@ class VLMNonAgent(Agent):
         
         self.llm_type = llm_type
 
-        if 'gpt-4' in 'llm_type':
-            # TODO: ADD OpenAI here
-            pass
+        if 'gpt' in llm_type:
+            self.chain = ChatOpenAI(model=llm_type, temperature=temperature)
         else:
-            raise NotImplementedError
+            self.chain = ChatOllama(model=llm_type, num_ctx=num_ctx, temperature=temperature)
         
         top_level_path = str(os.path.dirname(__file__)) + '/../'
         self.prompt = file_to_string(top_level_path+'prompts/vlm_non_agent_system_prompt.txt')

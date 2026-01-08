@@ -4,6 +4,7 @@ import traceback
 import sys, re
 
 # from langchain_openai import OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from langchain_community.chat_models import ChatOllama
@@ -96,9 +97,7 @@ def try_except_continue(state, func):
             continue
 
 class ReMEmbRAgent(Agent):
-
-    def __init__(self, llm_type='gpt-4o', num_ctx=8192, temperature=0):
-
+    def __init__(self, llm_type='gpt', num_ctx=8192, temperature=0):
         # Wrapper that handles everything
         llm = self.llm_selector(llm_type, temperature, num_ctx)
         chat = FunctionsWrapper(llm)
@@ -126,7 +125,8 @@ class ReMEmbRAgent(Agent):
     def llm_selector(self, llm_type, temperature, num_ctx):
         llm = None
         # Support for LLM Gateway
-        if 'gpt-4' in llm_type:
+        if 'gpt' in llm_type:
+            llm = ChatOpenAI(model="gpt-5.1", temperature=temperature)
             # TODO: ADD OpenAI here
             pass
         elif 'gemini' in llm_type:
