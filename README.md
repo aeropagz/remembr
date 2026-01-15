@@ -21,6 +21,7 @@ questions like "How long were you in the building for?"
     mkdir deps
     cd deps
     git clone https://github.com/NVlabs/VILA.git
+    git checkout f398f6013e304cedd30ea1c66be251e0c6f3efd7
     ./vila_setup.sh remembr
     ```
 
